@@ -9,52 +9,132 @@ namespace ParkingPlaces.Tests;
 public class CitiesControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
-    public CitiesControllerTests(WebApplicationFactory<Program> factory) => _client = factory.CreateClient();
 
-    private static City Sample(string name = "Sao Paulo", string state = "SP", string country = "Brazil", int pop = 12325232)
-        => new() { Name = name, State = state, Country = country, Population = pop };
+    public CitiesControllerTests(WebApplicationFactory<Program> factory)
+    {
+        _client = factory.CreateClient();
+    }
 
-    [Fact] public async Task GetAll_ReturnsSuccess() { var r = await _client.GetAsync("/cities"); r.EnsureSuccessStatusCode(); }
-    [Fact] public async Task GetById_NotFound() { var r = await _client.GetAsync("/cities/999"); Assert.Equal(HttpStatusCode.NotFound, r.StatusCode); }
-    [Fact] public async Task Create_ReturnsCreated()
+    private static City CreateSampleCity(string name = "Sao Paulo", string state = "SP", string country = "Brazil", int population = 12325232)
     {
-        var r = await _client.PostAsJsonAsync("/cities", Sample());
-        Assert.Equal(HttpStatusCode.Created, r.StatusCode);
-        var c = await r.Content.ReadFromJsonAsync<City>();
-        Assert.NotNull(c); Assert.True(c.Id > 0);
+        return new City
+        {
+            Name = name,
+            State = state,
+            Country = country,
+            Population = population
+        };
     }
-    [Fact] public async Task GetById_Existing_ReturnsCity()
+
+    [Fact]
+    public async Task GetAll_ReturnsSuccessStatusCode()
     {
-        var cr = await _client.PostAsJsonAsync("/cities", Sample("Rio", "RJ", "Brazil", 6748000));
-        var c = await cr.Content.ReadFromJsonAsync<City>();
-        var gr = await _client.GetAsync($"/cities/{c!.Id}"); gr.EnsureSuccessStatusCode();
-        var f = await gr.Content.ReadFromJsonAsync<City>();
-        Assert.NotNull(f); Assert.Equal("Rio", f.Name);
+        var response = await _client.GetAsync("/cities");
+        response.EnsureSuccessStatusCode();
     }
-    [Fact] public async Task Update_ReturnsUpdated()
+
+    [Fact]
+    public async Task GetById_NonExistent_ReturnsNotFound()
     {
-        var cr = await _client.PostAsJsonAsync("/cities", Sample());
-        var c = await cr.Content.ReadFromJsonAsync<City>();
-        var ur = await _client.PutAsJsonAsync($"/cities/{c!.Id}", Sample("Updated", "SP", "Brazil", 13000000));
-        ur.EnsureSuccessStatusCode();
-        var u = await ur.Content.ReadFromJsonAsync<City>();
-        Assert.Equal("Updated", u!.Name);
+        var response = await _client.GetAsync("/cities/999");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
-    [Fact] public async Task Update_NotFound() { var r = await _client.PutAsJsonAsync("/cities/999", Sample()); Assert.Equal(HttpStatusCode.NotFound, r.StatusCode); }
-    [Fact] public async Task Delete_ReturnsNoContent()
+
+    [Fact]
+    public async Task CreateCity_ReturnsCreatedWithCity()
     {
-        var cr = await _client.PostAsJsonAsync("/cities", Sample());
-        var c = await cr.Content.ReadFromJsonAsync<City>();
-        var dr = await _client.DeleteAsync($"/cities/{c!.Id}");
-        Assert.Equal(HttpStatusCode.NoContent, dr.StatusCode);
+        var city = CreateSampleCity();
+        var response = await _client.PostAsJsonAsync("/cities", city);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<City>();
+        Assert.NotNull(created);
+        Assert.Equal(city.Name, created.Name);
+        Assert.Equal(city.State, created.State);
+        Assert.Equal(city.Country, created.Country);
+        Assert.Equal(city.Population, created.Population);
+        Assert.True(created.Id > 0);
     }
-    [Fact] public async Task Delete_NotFound() { var r = await _client.DeleteAsync("/cities/999"); Assert.Equal(HttpStatusCode.NotFound, r.StatusCode); }
-    [Fact] public async Task Delete_RemovesFromList()
+
+    [Fact]
+    public async Task GetById_ExistingCity_ReturnsCity()
     {
-        var cr = await _client.PostAsJsonAsync("/cities", Sample("BH", "MG", "Brazil", 2523000));
-        var c = await cr.Content.ReadFromJsonAsync<City>();
-        await _client.DeleteAsync($"/cities/{c!.Id}");
-        var gr = await _client.GetAsync($"/cities/{c.Id}");
-        Assert.Equal(HttpStatusCode.NotFound, gr.StatusCode);
+        var city = CreateSampleCity("Rio de Janeiro", "RJ", "Brazil", 6748000);
+        var createResponse = await _client.PostAsJsonAsync("/cities", city);
+        var created = await createResponse.Content.ReadFromJsonAsync<City>();
+
+        var getResponse = await _client.GetAsync($"/cities/{created!.Id}");
+        getResponse.EnsureSuccessStatusCode();
+
+        var fetched = await getResponse.Content.ReadFromJsonAsync<City>();
+        Assert.NotNull(fetched);
+        Assert.Equal(created.Id, fetched.Id);
+        Assert.Equal("Rio de Janeiro", fetched.Name);
+        Assert.Equal("RJ", fetched.State);
+        Assert.Equal("Brazil", fetched.Country);
+        Assert.Equal(6748000, fetched.Population);
+    }
+
+    [Fact]
+    public async Task UpdateCity_ReturnsUpdatedCity()
+    {
+        var city = CreateSampleCity();
+        var createResponse = await _client.PostAsJsonAsync("/cities", city);
+        var created = await createResponse.Content.ReadFromJsonAsync<City>();
+
+        var updatedCity = new City
+        {
+            Name = "Sao Paulo Updated",
+            State = "SP",
+            Country = "Brazil",
+            Population = 13000000
+        };
+
+        var updateResponse = await _client.PutAsJsonAsync($"/cities/{created!.Id}", updatedCity);
+        updateResponse.EnsureSuccessStatusCode();
+
+        var result = await updateResponse.Content.ReadFromJsonAsync<City>();
+        Assert.NotNull(result);
+        Assert.Equal("Sao Paulo Updated", result.Name);
+        Assert.Equal(13000000, result.Population);
+    }
+
+    [Fact]
+    public async Task UpdateCity_NonExistent_ReturnsNotFound()
+    {
+        var city = CreateSampleCity();
+        var response = await _client.PutAsJsonAsync("/cities/999", city);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteCity_ReturnsNoContent()
+    {
+        var city = CreateSampleCity();
+        var createResponse = await _client.PostAsJsonAsync("/cities", city);
+        var created = await createResponse.Content.ReadFromJsonAsync<City>();
+
+        var deleteResponse = await _client.DeleteAsync($"/cities/{created!.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteCity_NonExistent_ReturnsNotFound()
+    {
+        var response = await _client.DeleteAsync("/cities/999");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteCity_RemovesFromList()
+    {
+        var city = CreateSampleCity("Belo Horizonte", "MG", "Brazil", 2523000);
+        var createResponse = await _client.PostAsJsonAsync("/cities", city);
+        var created = await createResponse.Content.ReadFromJsonAsync<City>();
+
+        await _client.DeleteAsync($"/cities/{created!.Id}");
+
+        var getResponse = await _client.GetAsync($"/cities/{created.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 }

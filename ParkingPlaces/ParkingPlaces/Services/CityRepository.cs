@@ -13,14 +13,11 @@ namespace ParkingPlaces.Services
 
     public class InMemoryCityRepository : ICityRepository
     {
-        private readonly List<City> _cities = new()
-        {
-            new City { Id = 1, Name = "Sao Paulo", State = "SP", Country = "Brazil", Population = 12325232 },
-            new City { Id = 2, Name = "Rio de Janeiro", State = "RJ", Country = "Brazil", Population = 6747815 }
-        };
-        private int _nextId = 3;
+        private readonly List<City> _cities = new();
+        private int _nextId = 1;
 
         public IEnumerable<City> GetAll() => _cities;
+
         public City? GetById(int id) => _cities.FirstOrDefault(c => c.Id == id);
 
         public City Create(City city)
@@ -34,6 +31,7 @@ namespace ParkingPlaces.Services
         {
             var existing = GetById(id);
             if (existing is null) return null;
+
             existing.Name = updated.Name;
             existing.State = updated.State;
             existing.Country = updated.Country;

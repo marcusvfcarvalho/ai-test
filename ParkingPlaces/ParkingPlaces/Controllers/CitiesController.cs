@@ -9,16 +9,25 @@ namespace ParkingPlaces.Controllers
     public class CitiesController : ControllerBase
     {
         private readonly ICityRepository _repository;
-        public CitiesController(ICityRepository repository) => _repository = repository;
+
+        public CitiesController(ICityRepository repository)
+        {
+            _repository = repository;
+        }
 
         [HttpGet]
-        public ActionResult<IEnumerable<City>> GetAll() => Ok(_repository.GetAll());
+        public ActionResult<IEnumerable<City>> GetAll()
+        {
+            return Ok(_repository.GetAll());
+        }
 
         [HttpGet("{id:int}")]
         public ActionResult<City> GetById(int id)
         {
             var city = _repository.GetById(id);
-            return city is null ? NotFound(new { message = $"City with id {id} not found." }) : Ok(city);
+            if (city is null)
+                return NotFound(new { message = $"City with id {id} not found." });
+            return Ok(city);
         }
 
         [HttpPost]
@@ -32,13 +41,18 @@ namespace ParkingPlaces.Controllers
         public ActionResult<City> Update(int id, [FromBody] City city)
         {
             var updated = _repository.Update(id, city);
-            return updated is null ? NotFound(new { message = $"City with id {id} not found." }) : Ok(updated);
+            if (updated is null)
+                return NotFound(new { message = $"City with id {id} not found." });
+            return Ok(updated);
         }
 
         [HttpDelete("{id:int}")]
         public IActionResult Delete(int id)
         {
-            return _repository.Delete(id) ? NoContent() : NotFound(new { message = $"City with id {id} not found." });
+            var deleted = _repository.Delete(id);
+            if (!deleted)
+                return NotFound(new { message = $"City with id {id} not found." });
+            return NoContent();
         }
     }
 }
