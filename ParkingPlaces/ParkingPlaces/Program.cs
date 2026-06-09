@@ -15,6 +15,7 @@ namespace ParkingPlaces
             builder.Services.AddOpenApi();
 
             builder.Services.AddSingleton<ICityRepository, InMemoryCityRepository>();
+            builder.Services.AddSingleton<IVehicleTypeRepository, InMemoryVehicleTypeRepository>();
 
             var app = builder.Build();
 
