@@ -1,3 +1,4 @@
+using ParkingPlaces.Services;
 
 namespace ParkingPlaces
 {
@@ -12,6 +13,9 @@ namespace ParkingPlaces
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+            builder.Services.AddSingleton<ICityRepository, InMemoryCityRepository>();
+            builder.Services.AddSingleton<IVehicleTypeRepository, InMemoryVehicleTypeRepository>();
 
             var app = builder.Build();
 
