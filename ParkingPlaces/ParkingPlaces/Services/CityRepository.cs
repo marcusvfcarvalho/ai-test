@@ -1,50 +1,55 @@
+using ParkingPlaces.Data;
 using ParkingPlaces.Models;
 
-namespace ParkingPlaces.Services
+namespace ParkingPlaces.Services;
+
+public interface ICityRepository
 {
-    public interface ICityRepository
+    IEnumerable<City> GetAll();
+    City? GetById(int id);
+    City Create(City city);
+    City? Update(int id, City city);
+    bool Delete(int id);
+}
+
+public class SqliteCityRepository : ICityRepository
+{
+    private readonly ParkingPlacesDbContext _context;
+
+    public SqliteCityRepository(ParkingPlacesDbContext context)
     {
-        IEnumerable<City> GetAll();
-        City? GetById(int id);
-        City Create(City city);
-        City? Update(int id, City city);
-        bool Delete(int id);
+        _context = context;
     }
 
-    public class InMemoryCityRepository : ICityRepository
+    public IEnumerable<City> GetAll() => _context.Cities.ToList();
+
+    public City? GetById(int id) => _context.Cities.Find(id);
+
+    public City Create(City city)
     {
-        private readonly List<City> _cities = new();
-        private int _nextId = 1;
+        _context.Cities.Add(city);
+        _context.SaveChanges();
+        return city;
+    }
 
-        public IEnumerable<City> GetAll() => _cities;
+    public City? Update(int id, City updated)
+    {
+        var existing = _context.Cities.Find(id);
+        if (existing is null) return null;
+        existing.Name = updated.Name;
+        existing.State = updated.State;
+        existing.Country = updated.Country;
+        existing.Population = updated.Population;
+        _context.SaveChanges();
+        return existing;
+    }
 
-        public City? GetById(int id) => _cities.FirstOrDefault(c => c.Id == id);
-
-        public City Create(City city)
-        {
-            city.Id = _nextId++;
-            _cities.Add(city);
-            return city;
-        }
-
-        public City? Update(int id, City updated)
-        {
-            var existing = GetById(id);
-            if (existing is null) return null;
-
-            existing.Name = updated.Name;
-            existing.State = updated.State;
-            existing.Country = updated.Country;
-            existing.Population = updated.Population;
-            return existing;
-        }
-
-        public bool Delete(int id)
-        {
-            var city = GetById(id);
-            if (city is null) return false;
-            _cities.Remove(city);
-            return true;
-        }
+    public bool Delete(int id)
+    {
+        var city = _context.Cities.Find(id);
+        if (city is null) return false;
+        _context.Cities.Remove(city);
+        _context.SaveChanges();
+        return true;
     }
 }

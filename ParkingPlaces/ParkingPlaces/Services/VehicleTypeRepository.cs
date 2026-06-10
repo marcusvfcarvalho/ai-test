@@ -1,52 +1,54 @@
+using ParkingPlaces.Data;
 using ParkingPlaces.Models;
 
-namespace ParkingPlaces.Services
+namespace ParkingPlaces.Services;
+
+public interface IVehicleTypeRepository
 {
-    public interface IVehicleTypeRepository
+    IEnumerable<VehicleType> GetAll();
+    VehicleType? GetById(int id);
+    VehicleType Create(VehicleType vt);
+    VehicleType? Update(int id, VehicleType vt);
+    bool Delete(int id);
+}
+
+public class SqliteVehicleTypeRepository : IVehicleTypeRepository
+{
+    private readonly ParkingPlacesDbContext _context;
+
+    public SqliteVehicleTypeRepository(ParkingPlacesDbContext context)
     {
-        IEnumerable<VehicleType> GetAll();
-        VehicleType? GetById(int id);
-        VehicleType Create(VehicleType vt);
-        VehicleType? Update(int id, VehicleType vt);
-        bool Delete(int id);
+        _context = context;
     }
 
-    public class InMemoryVehicleTypeRepository : IVehicleTypeRepository
+    public IEnumerable<VehicleType> GetAll() => _context.VehicleTypes.ToList();
+
+    public VehicleType? GetById(int id) => _context.VehicleTypes.Find(id);
+
+    public VehicleType Create(VehicleType vt)
     {
-        private readonly List<VehicleType> _types = new()
-        {
-            new VehicleType { Id = 1, Name = "Car", Description = "Standard passenger car", PricePerHour = 5.00m },
-            new VehicleType { Id = 2, Name = "Motorcycle", Description = "Motorcycle or scooter", PricePerHour = 2.50m },
-            new VehicleType { Id = 3, Name = "Truck", Description = "Large commercial vehicle", PricePerHour = 10.00m }
-        };
-        private int _nextId = 4;
+        _context.VehicleTypes.Add(vt);
+        _context.SaveChanges();
+        return vt;
+    }
 
-        public IEnumerable<VehicleType> GetAll() => _types;
-        public VehicleType? GetById(int id) => _types.FirstOrDefault(v => v.Id == id);
+    public VehicleType? Update(int id, VehicleType updated)
+    {
+        var existing = _context.VehicleTypes.Find(id);
+        if (existing is null) return null;
+        existing.Name = updated.Name;
+        existing.Description = updated.Description;
+        existing.PricePerHour = updated.PricePerHour;
+        _context.SaveChanges();
+        return existing;
+    }
 
-        public VehicleType Create(VehicleType vt)
-        {
-            vt.Id = _nextId++;
-            _types.Add(vt);
-            return vt;
-        }
-
-        public VehicleType? Update(int id, VehicleType updated)
-        {
-            var existing = GetById(id);
-            if (existing is null) return null;
-            existing.Name = updated.Name;
-            existing.Description = updated.Description;
-            existing.PricePerHour = updated.PricePerHour;
-            return existing;
-        }
-
-        public bool Delete(int id)
-        {
-            var vt = GetById(id);
-            if (vt is null) return false;
-            _types.Remove(vt);
-            return true;
-        }
+    public bool Delete(int id)
+    {
+        var vt = _context.VehicleTypes.Find(id);
+        if (vt is null) return false;
+        _context.VehicleTypes.Remove(vt);
+        _context.SaveChanges();
+        return true;
     }
 }
