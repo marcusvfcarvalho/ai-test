@@ -6,10 +6,10 @@ using Xunit;
 
 namespace ParkingPlaces.Tests;
 
-public class VehicleTypesControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class VehicleTypesControllerTests : IClassFixture<ParkingPlaceTests>
 {
     private readonly HttpClient _client;
-    public VehicleTypesControllerTests(WebApplicationFactory<Program> factory) => _client = factory.CreateClient();
+    public VehicleTypesControllerTests(ParkingPlaceTests factory) => _client = factory.CreateClient();
 
     private static VehicleType Sample(string name = "Car", string desc = "Standard car", decimal price = 5.00m)
         => new() { Name = name, Description = desc, PricePerHour = price };
