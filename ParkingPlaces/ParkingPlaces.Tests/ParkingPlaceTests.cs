@@ -1,10 +1,8 @@
 using System;
-using System.Data;
 using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ParkingPlaces.Data;
@@ -13,8 +11,7 @@ namespace ParkingPlaces.Tests;
 
 public class ParkingPlaceTests : WebApplicationFactory<Program>, IDisposable
 {
-    private static readonly string DbPath = Path.Combine(Path.GetTempPath(), $"parkingplaces_test_{Guid.NewGuid():N}.db");
-    private static bool _initialized;
+    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"parkingplaces_test_{Guid.NewGuid():N}.db");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -39,12 +36,16 @@ public class ParkingPlaceTests : WebApplicationFactory<Program>, IDisposable
                     services.Remove(svc);
             }
 
-            // Add SQLite using a file-based database for testing
-            var connectionString = $"Data Source={DbPath}";
+            // Add SQLite using a file-based database for testing (unique per instance)
+            var connectionString = $"Data Source={_dbPath}";
             services.AddDbContext<ParkingPlacesDbContext>(options =>
             {
                 options.UseSqlite(connectionString);
             });
+
+            // Delete stale db file if exists (from previous crashed runs)
+            if (File.Exists(_dbPath))
+                File.Delete(_dbPath);
 
             // Create schema
             var sp = services.BuildServiceProvider();
@@ -61,8 +62,8 @@ public class ParkingPlaceTests : WebApplicationFactory<Program>, IDisposable
         base.Dispose();
         try
         {
-            if (File.Exists(DbPath))
-                File.Delete(DbPath);
+            if (File.Exists(_dbPath))
+                File.Delete(_dbPath);
         }
         catch
         {
